@@ -1,12 +1,13 @@
 {
   "name": "my-iptv-server",
   "version": "1.0.0",
-  "description": "Free IPTV Server for Smarters Pro",
+  "description": "Auto-updated IPTV Server for Smarters Pro",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "axios": "^1.6.0"
   }
 }
