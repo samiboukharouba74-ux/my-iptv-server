@@ -1,45 +1,37 @@
 const express = require('express');
+const axios = require('axios');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// قائمة القنوات الخاصة بك (يمكنك إضافة أي قناة تريدها هنا مستقبلاً)
-const channels = [
-  {
-    name: "Al Jazeera Arabic - الجزيرة مباشر",
-    category: "News",
-    url: "https://live-hls-web-aje.akamaized.net/hls/live/2026817/AJE/master_1080p.m3u8"
-  },
-  {
-    name: "BBC Arabic - بي بي سي عربي",
-    category: "News",
-    url: "https://vs-hls-push-ww-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_arabic_tv/pc_hd_v1.m3u8"
-  },
-  {
-    name: "France 24 Arabic - فرانس 24",
-    category: "News",
-    url: "https://stream.f24.media/f24/ar/f24_ar.m3u8"
+// استدعاء أحدث القنوات المباشرة (الجزائرية + الفرنسية + العربية الشائعة) تلقائياً
+app.get('/playlist.m3u', async (req, res) => {
+  try {
+    // 1. جلب القنوات الجزائرية (dz)
+    const dzRes = await axios.get('https://iptv-org.github.io/iptv/countries/dz.m3u');
+    // 2. جلب القنوات الفرنسية (fr)
+    const frRes = await axios.get('https://iptv-org.github.io/iptv/countries/fr.m3u');
+    // 3. جلب القنوات العربية العامة والمجانية (ar)
+    const arRes = await axios.get('https://iptv-org.github.io/iptv/languages/ar.m3u');
+
+    // دمج كافة القنوات في قائمة واحدة
+    let combinedPlaylist = "#EXTM3U\n";
+    combinedPlaylist += "\n# === ALGERIAN CHANNELS (الجزائر) ===\n" + dzRes.data.replace('#EXTM3U', '');
+    combinedPlaylist += "\n# === ARABIC CHANNELS (العالم العربي) ===\n" + arRes.data.replace('#EXTM3U', '');
+    combinedPlaylist += "\n# === FRENCH CHANNELS (فرنسا) ===\n" + frRes.data.replace('#EXTM3U', '');
+
+    res.header('Content-Type', 'audio/x-mpegurl');
+    res.header('Access-Control-Allow-Origin', '*');
+    res.send(combinedPlaylist);
+  } catch (error) {
+    console.error("Error fetching playlists:", error);
+    res.status(500).send("Error generating playlist");
   }
-];
-
-// نقطة النهاية لتوليد قائمة M3U الخاصة بتطبيق IPTV Smarters Pro
-app.get('/playlist.m3u', (req, res) => {
-  let playlist = "#EXTM3U\n";
-  
-  channels.forEach((channel) => {
-    playlist += `#EXTINF:-1 group-title="${channel.category}", ${channel.name}\n`;
-    playlist += `${channel.url}\n`;
-  });
-
-  res.header('Content-Type', 'audio/x-mpegurl');
-  res.header('Access-Control-Allow-Origin', '*');
-  res.send(playlist);
 });
 
-// الصفحة الرئيسية لتأكيد عمل السيرفر
 app.get('/', (req, res) => {
-  res.send('<h1>IPTV Server is Running Successfully!</h1><p>Use /playlist.m3u for IPTV Smarters Pro</p>');
+  res.send('<h1>IPTV Server is Live & Fully Auto-Updated!</h1>');
 });
 
 app.listen(PORT, () => {
-  console.log(`IPTV Server is active on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
